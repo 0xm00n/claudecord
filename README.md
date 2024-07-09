@@ -1,13 +1,11 @@
 # claudecord
 
 a simple claude discord bot! 
-
 <br>
-<div style="display: flex; justify-content: space-around;">
-  <img src="https://github.com/0xm00n/claudecord/assets/71098497/6af71484-ab86-42eb-b53c-15bce9a40d08" width="420">
-  <img src="https://github.com/0xm00n/claudecord/assets/71098497/71e61b69-3529-4493-a170-a53a6d593b8e" width="444">
+<br>
+<div align="center">
+  <img src="https://github.com/0xm00n/claudecord/assets/71098497/6af71484-ab86-42eb-b53c-15bce9a40d08" width="650">
 </div>
-
 <br>
 
 ## current capabilities
