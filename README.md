@@ -4,8 +4,8 @@ a simple claude discord bot!
 
 <br>
 <div style="display: flex; justify-content: space-around;">
-  <img src="https://github.com/0xm00n/claudecord/assets/71098497/6af71484-ab86-42eb-b53c-15bce9a40d08" width="480">
-  <img src="https://github.com/0xm00n/claudecord/assets/71098497/71e61b69-3529-4493-a170-a53a6d593b8e" width="514">
+  <img src="https://github.com/0xm00n/claudecord/assets/71098497/6af71484-ab86-42eb-b53c-15bce9a40d08" width="280">
+  <img src="https://github.com/0xm00n/claudecord/assets/71098497/71e61b69-3529-4493-a170-a53a6d593b8e" width="314">
 </div>
 
 <br>
