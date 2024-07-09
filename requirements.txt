@@ -2,4 +2,5 @@ discord.py
 python-dotenv
 anthropic
 aiosqlite
-redis
+pdfminer.six
+pillow

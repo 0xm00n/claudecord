@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import aiosqlite
 import json
 import logging
@@ -9,55 +9,60 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 class ConversationStorage:
     def __init__(self, db_path: str):
         self.db_path: str = db_path
-        self.db: Optional[aiosqlite.Connection] = None
-        self.logger: logging.Logger = logging.getLogger(__name__)
 
     async def init(self) -> None:
-        self.db = await aiosqlite.connect(self.db_path)
-        await self.db.execute("""
-            CREATE TABLE IF NOT EXISTS conversations (
-                user_id TEXT PRIMARY KEY,
-                history TEXT NOT NULL
-            )
-        """)
-        await self.db.commit()
-        self.logger.info(f"SQLite database initialized at {self.db_path}")
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS conversations (
+                    user_id TEXT PRIMARY KEY,
+                    history TEXT NOT NULL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT,
+                    filename TEXT,
+                    content BLOB
+                )
+            """)
+            await db.commit()
 
-    async def get_convo(self, user_id: str) -> List[Dict[str, str]]:
-        try:
-            async with self.db.execute("SELECT history FROM conversations WHERE user_id = ?", (user_id,)) as cursor:
-                result: Optional[tuple] = await cursor.fetchone()
+    async def get_convo(self, user_id: str) -> List[Dict[str, any]]:
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT history FROM conversations WHERE user_id = ?", (user_id,)) as cursor:
+                result = await cursor.fetchone()
                 if result:
                     return json.loads(result[0])
-        except Exception as e:
-            self.logger.error(f"Error retrieving conversation for user {user_id}: {e}")
         return []
 
-    async def update_convo(self, user_id: str, conversation: List[Dict[str, str]]) -> None:
-        try:
-            await self.db.execute(
+    async def update_convo(self, user_id: str, conversation: List[Dict[str, any]]) -> None:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
                 "INSERT OR REPLACE INTO conversations (user_id, history) VALUES (?, ?)",
                 (user_id, json.dumps(conversation))
             )
-            await self.db.commit()
-            self.logger.debug(f"Updated conversation for user {user_id}")
-        except Exception as e:
-            self.logger.error(f"Error updating conversation for user {user_id}: {e}")
+            await db.commit()
 
-    async def delete_convo(self, user_id: str) -> None:
-        try:
-            await self.db.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
-            await self.db.commit()
-            self.logger.debug(f"Deleted conversation for user {user_id}")
-        except Exception as e:
-            self.logger.error(f"Error deleting conversation for user {user_id}: {e}")
+    async def store_attachment(self, user_id: str, filename: str, content: bytes) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "INSERT INTO attachments (user_id, filename, content) VALUES (?, ?, ?)",
+                (user_id, filename, content)
+            )
+            await db.commit()
+            return cursor.lastrowid
 
-    async def close(self) -> None:
-        if self.db:
-            await self.db.close()
-            self.logger.info("Database connection closed")
+    async def get_attachment(self, attachment_id: int) -> Tuple[str, bytes]:
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT filename, content FROM attachments WHERE id = ?", (attachment_id,)) as cursor:
+                result = await cursor.fetchone()
+                if result:
+                    return result
+        return None
 
-
-
-
-
+    async def delete_user_convo(self, user_id: str) -> None:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
+            await db.execute("DELETE FROM attachments WHERE user_id = ?", (user_id,))
+            await db.commit()
