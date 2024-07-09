@@ -1,6 +1,6 @@
 # claudecord
 
-a simple claude discord bot! 
+a simple claude 3.5 sonnet discord bot to centralize access to claude responses! each user in a discord server has their own conversation history.
 <br>
 <br>
 <div align="center">
