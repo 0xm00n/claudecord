@@ -9,6 +9,15 @@ a simple claude 3.5 sonnet discord bot to centralize access to claude responses!
 <br>
 
 ## installation
+create a .env file in repo dir:<br>
+```
+touch .env
+```
+in the .env file, input your discord bot token and anthropic api key:<br>
+```
+DISCORD_TOKEN=<INSERT TOKEN>
+ANTHROPIC_API_KEY=<INSERT API KEY>
+```
 install requirements:<br>
 ```
 pip install -r requirements.txt
