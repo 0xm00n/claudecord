@@ -34,7 +34,7 @@ i recommend running the bot on a server.
 
 - [X] conversation history (stored in sqlite db) allowing for multi-turn conversations w/ claudecord for each user in server
 - [X] multimodality - claudecord can read and analyze pdfs and images 
-- [X] delete history command to have a fresh conversation memory
+- [X] delete history command to have a fresh conversation memory `>delete_history`
 
 
 ## todo
