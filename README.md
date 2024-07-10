@@ -1,6 +1,6 @@
 # claudecord
 
-a simple claude 3.5 sonnet discord bot to centralize access to claude responses! each user in a discord server has their own conversation history.
+a simple claude 3.5 sonnet discord bot to centralize access to claude responses! each user in a discord server has their own conversation history. the default prompt is geared towards helping with theoretical ML research and concepts.
 <br>
 <br>
 <div align="center">
