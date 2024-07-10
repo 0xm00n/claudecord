@@ -41,3 +41,4 @@ i recommend running the bot on a server.
 
 - [ ] incorporating citations into claudecord's responses 
 - [ ] implementing RAG
+- [ ] group chat command - merge conversation histories w/ 2 or more users in server
