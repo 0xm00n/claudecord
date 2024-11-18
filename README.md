@@ -38,7 +38,7 @@ i recommend running the bot on a server.
 
 
 ## todo
-- [ ] fix multi-turn conversation history bug
+- [ ] ⚠️ fix multi-turn conversation history bug (sends incorrectly formed request to anthropic when exceeding 8+ turns, maybe 10+ turns)
 - [ ] incorporating citations into claudecord's responses 
 - [ ] implementing RAG
 - [ ] group chat command - merge conversation histories w/ 2 or more users in server
