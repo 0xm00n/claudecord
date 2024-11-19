@@ -171,14 +171,17 @@ async def on_message(msg: Message) -> None:
         if msg.content:
             content.append({"type": "text", "text": msg.content})
         
-        reading_msg = await msg.channel.send("reading your attachments 🔎...")
+        reading_msg = None
+        if msg.attachments:
+            reading_msg = await msg.channel.send("reading your attachments 🔎...")
 
         # process attachments
         for attachment in msg.attachments:
             attachment_content = await process_file(attachment, str(msg.author.id), storage)
             content.extend(attachment_content)
         
-        await reading_msg.delete()
+        if reading_msg:
+            await reading_msg.delete()
 
         if content:
             await send_msg(msg, content)
