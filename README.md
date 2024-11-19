@@ -1,6 +1,6 @@
 # claudecord
 
-a simple claude 3.5 sonnet discord bot to centralize access to claude among people in your discord server!
+a simple claude 3.5 sonnet discord bot (specialized for scientific research, default = AI theory research) to centralize access to claude among people in your discord server!
 <br>
 <br>
 <div align="center">
