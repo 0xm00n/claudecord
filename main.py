@@ -22,10 +22,10 @@ load_dotenv()
 # Constants
 DISCORD_TOK: Final[str] = os.getenv('DISCORD_TOKEN')
 CLAUDE_KEY: Final[str] = os.getenv('ANTHROPIC_API_KEY')
-MODEL_NAME: Final[str] = "claude-3-opus-20240229"
+MODEL_NAME: Final[str] = "claude-3-5-sonnet-20241022"
 MAX_TOKENS: Final[int] = 4096
 TEMPERATURE: Final[float] = 0.1
-MAX_MEMORY: Final[int] = 20
+MAX_MEMORY: Final[int] = 6  # Reduced for testing - represents 3 user-assistant pairs
 SYSTEM_PROMPT: Final[str] = """
 You are a world-class expert in theoretical ML research, computational neuroscience, and cognitive science 
 with extensive experience in engineering complex ML systems end-to-end in production. Respond with concise 
@@ -35,6 +35,9 @@ specific rationale rather than vague, general answers. When analyzing scientific
 for your statements.
 """.strip()
 
+# Test mode flag
+TEST_MODE: bool = True
+
 # initialize clients
 intents: Intents = Intents.default()
 intents.message_content = True
@@ -42,11 +45,23 @@ bot = commands.Bot(command_prefix='>', intents=intents)
 claude_client: AsyncAnthropic = AsyncAnthropic(api_key=CLAUDE_KEY)
 
 # initialize conversation storage
-storage = ConversationStorage("conversations.db")
+storage = ConversationStorage("test_conversations.db" if TEST_MODE else "conversations.db")
+
+def log_conversation_state(conversation: List[Dict[str, any]], stage: str) -> None:
+    """Debug helper to log conversation state at various stages"""
+    if TEST_MODE:
+        logger.debug(f"\n=== Conversation State at {stage} ===")
+        logger.debug(f"Length: {len(conversation)} messages")
+        for i, msg in enumerate(conversation):
+            logger.debug(f"Message {i}:")
+            logger.debug(f"  Role: {msg['role']}")
+            logger.debug(f"  Content: {msg['content']}")
+        logger.debug("=====================================\n")
 
 async def get_claude_response(user_id: str, new_content: List[Dict[str, any]]) -> str:
     try:
         conversation: List[Dict[str, any]] = await storage.get_convo(user_id)
+        log_conversation_state(conversation, "Initial Load")
         
         # process attachment references
         for item in new_content:
@@ -55,31 +70,50 @@ async def get_claude_response(user_id: str, new_content: List[Dict[str, any]]) -
                 filename, content = await storage.get_attachment(attachment_id)
                 item['source'] = {"type": "base64", "media_type": "image/png", "data": content}
         
-        # add the new content to the conversation
+        # add the new content to the conversation with proper structure
         conversation.append({"role": "user", "content": new_content})
+        log_conversation_state(conversation, "After Adding User Message")
         
-        # trim the conversation if it's too long
+        # ensure conversation length is even (user-assistant pairs) and within limits
         if len(conversation) > MAX_MEMORY:
-            conversation = conversation[-(MAX_MEMORY - (MAX_MEMORY % 2)):]
+            # Keep an even number of messages, starting with the most recent
+            num_pairs = (MAX_MEMORY // 2) - 1  # Subtract 1 to make room for the new pair
+            conversation = conversation[-(num_pairs * 2):]
+            logger.debug(f"Trimmed conversation to {len(conversation)} messages ({num_pairs} complete pairs)")
+        
+        log_conversation_state(conversation, "After Trimming")
+        
+        # Ensure messages are properly structured for the API
+        messages = []
+        for msg in conversation:
+            if isinstance(msg['content'], str):
+                msg['content'] = [{"type": "text", "text": msg['content']}]
+            messages.append(msg)
+        
+        log_conversation_state(messages, "Before API Call")
         
         msg = await claude_client.messages.create(
             model=MODEL_NAME,
             max_tokens=MAX_TOKENS,
             temperature=TEMPERATURE,
             system=SYSTEM_PROMPT,
-            messages=conversation
+            messages=messages
         )
         
         assistant_response: str = msg.content[0].text
         
-        # add Claude's response to the conversation
-        conversation.append({"role": "assistant", "content": assistant_response})
+        # add Claude's response to the conversation with proper structure
+        conversation.append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": assistant_response}]
+        })
+        
+        log_conversation_state(conversation, "After Adding Assistant Response")
         
         # update the entire conversation in the database
         await storage.update_convo(user_id, conversation)
         
         logger.debug(f"Processed message for user {user_id}")
-        logger.debug(f"Conversation history: {conversation}")
         return assistant_response
     except Exception as e:
         logger.error(f"Error in get_claude_response: {e}")
@@ -113,6 +147,11 @@ async def on_ready() -> None:
     logger.info(f'{bot.user} is now running...')
     await storage.init()
     
+    if TEST_MODE:
+        logger.info("=== RUNNING IN TEST MODE ===")
+        logger.info(f"Max Memory: {MAX_MEMORY} messages ({MAX_MEMORY//2} pairs)")
+        logger.info(f"Using test database: {storage.db_path}")
+    
     # check if PyNaCl is installed
     try:
         import nacl
@@ -132,7 +171,6 @@ async def on_message(msg: Message) -> None:
         if msg.content:
             content.append({"type": "text", "text": msg.content})
         
-
         reading_msg = await msg.channel.send("reading your attachments 🔎...")
 
         # process attachments
