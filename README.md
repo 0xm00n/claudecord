@@ -12,10 +12,10 @@ merged chat history and conversation among multiple users with the claude bot is
 
 ## installation
 
-we use [uv](https://github.com/astral-sh/uv) for fast python package management. set up your environment:<br>
+i use [uv](https://github.com/astral-sh/uv) for python package and project management. set up your environment:<br>
 ```bash
 uv venv
-source .venv/bin/activate  # or .venv\Scripts\activate on windows
+source .venv/bin/activate  # linux
 uv pip sync pyproject.toml
 ```
 
