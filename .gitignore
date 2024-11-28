@@ -1,5 +1,6 @@
-venv/
+.venv/
 __pycache__/ 
+papers/
 conversations.db
 test_conversations.db
 .env

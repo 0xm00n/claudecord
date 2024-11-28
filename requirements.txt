@@ -1,6 +1,0 @@
-discord.py
-python-dotenv
-anthropic
-aiosqlite
-pdfminer.six
-pillow

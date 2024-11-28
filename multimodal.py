@@ -29,7 +29,7 @@ def extract_images_from_pdf(pdf_file: BytesIO) -> List[str]:
                     print(f"Error processing image: {e}")
     return images
 
-async def process_file(file: discord.Attachment, user_id: str, storage) -> List[Dict[str, any]]:
+async def process_file(file: discord.Attachment, user_id: str, storage, rag_processor=None, is_rag_mode: bool = False) -> List[Dict[str, any]]:
     content = []
     file_bytes = await file.read()
     
@@ -37,6 +37,13 @@ async def process_file(file: discord.Attachment, user_id: str, storage) -> List[
     attachment_id = await storage.store_attachment(user_id, file.filename, file_bytes)
     
     if file.filename.lower().endswith('.pdf'):
+        # if in RAG mode, save PDF to papers directory
+        if is_rag_mode and rag_processor:
+            success = await rag_processor.add_paper(file_bytes, file.filename)
+            if success:
+                content.append({"type": "text", "text": f"Added {file.filename} to the papers database."})
+        
+        # process PDF content as usual
         file_io = BytesIO(file_bytes)
         text = extract_text_from_pdf(file_io)
         images = extract_images_from_pdf(BytesIO(file_bytes))  # create a new BytesIO object

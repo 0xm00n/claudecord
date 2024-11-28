@@ -11,9 +11,12 @@ from io import BytesIO
 
 from conversation_mem import ConversationStorage
 from multimodal import process_file
+from rag import RagProcessor
 
-# logging setup
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging - only show INFO and above for most modules
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Keep discord.py at INFO level
 logger = logging.getLogger(__name__)
 
 # load environment variables
@@ -25,18 +28,22 @@ CLAUDE_KEY: Final[str] = os.getenv('ANTHROPIC_API_KEY')
 MODEL_NAME: Final[str] = "claude-3-5-sonnet-20241022"
 MAX_TOKENS: Final[int] = 4096
 TEMPERATURE: Final[float] = 0.1
-MAX_MEMORY: Final[int] = 6  # Reduced for testing - represents 3 user-assistant pairs
+MAX_MEMORY: Final[int] = 20 
+
+# System prompt for normal mode (non-RAG) conversations
 SYSTEM_PROMPT: Final[str] = """
-You are a world-class expert in theoretical ML research, computational neuroscience, and cognitive science 
-with extensive experience in engineering complex ML systems end-to-end in production. Respond with concise 
-answers backed by rigorous mathematics and theory. Make sure to double check your math and logic for 
-correctness and consistency rigorously before answering. Finally, back up the choices you make with a deep, 
-specific rationale rather than vague, general answers. When analyzing scientific papers, provide citations 
-for your statements.
+You are a world-class expert in theoretical ML research, computational neuroscience, cognitive science,
+philosophy, and psychology with extensive experience in engineering complex ML systems end-to-end in 
+production. Respond with concise answers backed by rigorous mathematics, theory, and philosophical 
+reasoning. Make sure to double check your math, logic, and philosophical arguments for correctness 
+and consistency rigorously before answering.
+
+Your answers must be concise but detailed in technical specificity while avoiding any generic fluff.
+Note: For research paper analysis, use >rag command to enable RAG mode instead.
 """.strip()
 
-# Test mode flag
-TEST_MODE: bool = True
+# test mode flag
+TEST_MODE: bool = False
 
 # initialize clients
 intents: Intents = Intents.default()
@@ -44,8 +51,12 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='>', intents=intents)
 claude_client: AsyncAnthropic = AsyncAnthropic(api_key=CLAUDE_KEY)
 
-# initialize conversation storage
+# initialize conversation storage and RAG processor
 storage = ConversationStorage("test_conversations.db" if TEST_MODE else "conversations.db")
+rag_processor = RagProcessor()
+
+# track which users are in RAG mode
+rag_mode_users: set = set()
 
 def log_conversation_state(conversation: List[Dict[str, any]], stage: str) -> None:
     """Debug helper to log conversation state at various stages"""
@@ -59,6 +70,7 @@ def log_conversation_state(conversation: List[Dict[str, any]], stage: str) -> No
         logger.debug("=====================================\n")
 
 async def get_claude_response(user_id: str, new_content: List[Dict[str, any]]) -> str:
+    """Handle normal mode (non-RAG) conversations"""
     try:
         conversation: List[Dict[str, any]] = await storage.get_convo(user_id)
         log_conversation_state(conversation, "Initial Load")
@@ -76,14 +88,13 @@ async def get_claude_response(user_id: str, new_content: List[Dict[str, any]]) -
         
         # ensure conversation length is even (user-assistant pairs) and within limits
         if len(conversation) > MAX_MEMORY:
-            # Keep an even number of messages, starting with the most recent
-            num_pairs = (MAX_MEMORY // 2) - 1  # Subtract 1 to make room for the new pair
+            # keep an even number of messages, starting with the most recent
+            num_pairs = (MAX_MEMORY // 2) - 1  # subtract 1 to make room for the new pair
             conversation = conversation[-(num_pairs * 2):]
             logger.debug(f"Trimmed conversation to {len(conversation)} messages ({num_pairs} complete pairs)")
         
         log_conversation_state(conversation, "After Trimming")
-        
-        # Ensure messages are properly structured for the API
+    
         messages = []
         for msg in conversation:
             if isinstance(msg['content'], str):
@@ -126,7 +137,15 @@ async def send_msg(msg: Message, content: List[Dict[str, any]]) -> None:
 
     try:
         thinking_msg = await msg.channel.send("Thinking 🤔...")
-        claude_response: str = await get_claude_response(str(msg.author.id), content)
+        
+        # Check if user is in RAG mode
+        if str(msg.author.id) in rag_mode_users:
+            # Extract text from content list
+            text_content = " ".join([item["text"] for item in content if item["type"] == "text"])
+            claude_response = await rag_processor.process_query(text_content)
+        else:
+            claude_response = await get_claude_response(str(msg.author.id), content)
+            
         await thinking_msg.delete()
         
         # split the response into chunks of 2000 characters or less
@@ -175,9 +194,17 @@ async def on_message(msg: Message) -> None:
         if msg.attachments:
             reading_msg = await msg.channel.send("reading your attachments 🔎...")
 
-        # process attachments
+        # process attachments - pass RAG processor and mode
+        user_id = str(msg.author.id)
+        is_rag_mode = user_id in rag_mode_users
         for attachment in msg.attachments:
-            attachment_content = await process_file(attachment, str(msg.author.id), storage)
+            attachment_content = await process_file(
+                attachment, 
+                user_id, 
+                storage,
+                rag_processor=rag_processor if is_rag_mode else None,
+                is_rag_mode=is_rag_mode
+            )
             content.extend(attachment_content)
         
         if reading_msg:
@@ -189,6 +216,22 @@ async def on_message(msg: Message) -> None:
             await msg.channel.send("Please provide some text, images, or files for me to analyze.")
     
     await bot.process_commands(msg)
+
+@bot.command(name='rag')
+async def toggle_rag(ctx):
+    """Toggle RAG mode for research paper queries"""
+    user_id = str(ctx.author.id)
+    
+    if user_id in rag_mode_users:
+        rag_mode_users.remove(user_id)
+        await ctx.send("RAG mode disabled. I will now respond normally to your queries.")
+    else:
+        rag_mode_users.add(user_id)
+        await ctx.send("RAG mode enabled! I will now use research papers to answer your queries. You can:\n"
+                      "1. Ask questions about papers in the local database\n"
+                      "2. If local papers are insufficient, I'll search and analyze external papers\n"
+                      "3. Attach PDF papers to add them to the local database\n"
+                      "Use >rag again to disable RAG mode.")
 
 @bot.command(name='delete_history')
 async def delete_history(ctx):

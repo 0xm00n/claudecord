@@ -1,0 +1,24 @@
+[project]
+name = "claudecord"
+version = "0.1.0"
+description = "a SoTA claude discord research bot"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.20.0",
+    "anthropic>=0.40.0",
+    "discord-py>=2.4.0",
+    "litecli>=1.13.2",
+    "litellm>=1.53.1",
+    "paper-qa>=5.5.0",
+    "paper-scraper",
+    "pdfminer-six>=20240706",
+    "pillow>=11.0.0",
+    "pybtex>=0.24.0",
+    "pydantic>=2.10.2",
+    "python-dotenv>=1.0.1",
+    "sentence-transformers>=3.3.1",
+]
+
+[tool.uv.sources]
+paper-scraper = { git = "https://github.com/blackadad/paper-scraper.git" }
