@@ -2,7 +2,7 @@
 
 a SoTA claude research discord bot for LLM assisted research primarly in the AI/ML domain. allows for centralized interaction among users in your server, especially helpful for collaborative idea generation/exploration.
 
-merged chat history and conversation among multiple users with the claude is a WIP!
+merged chat history and conversation among multiple users with the claude bot is a WIP!
 <br>
 <br>
 <div align="center">
