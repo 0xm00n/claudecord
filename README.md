@@ -9,27 +9,42 @@ a claude 3.5 sonnet discord bot specialized for research to centralize access to
 <br>
 
 ## installation
-create a .env file in repo dir:<br>
+
+we use [uv](https://github.com/astral-sh/uv) for fast python package management. set up your environment:<br>
+```bash
+uv venv
+source .venv/bin/activate  # or .venv\Scripts\activate on windows
+uv pip sync pyproject.toml
 ```
+
+create a .env file in repo dir:<br>
+```bash
 touch .env
 ```
-in the .env file, input your discord bot token and anthropic api key:<br>
+in the .env file, input your discord bot token, anthropic api key, and openai api key:<br>
 ```
 DISCORD_TOKEN=<INSERT TOKEN>
 ANTHROPIC_API_KEY=<INSERT API KEY>
-OPENAI_API_KEY=<INSERT API KEY>  # Required for academic paper summarization
+OPENAI_API_KEY=<INSERT API KEY> 
 ```
-install requirements:<br>
+
+## running
+
+with venv active:<br>
+```bash
+uv python main.py
 ```
-pip install -r requirements.txt
-```
-run the bot:<br>
-```
-python main.py
-```
-i recommend running the bot on a server.
-<br>
-<br>
+
+## usage
+
+- mention @claudecord to chat with the bot
+- attach images/pdfs to your message for analysis
+- commands:
+  - `>rag` - toggle research mode
+    - analyze papers in local db
+    - search external papers if needed
+    - attach pdfs to add to knowledge base
+  - `>delete_history` - clear your chat history
 
 ## current capabilities
 
@@ -37,18 +52,10 @@ i recommend running the bot on a server.
 - [X] multimodality - claudecord can read and analyze pdfs and images 
 - [X] delete history command to have a fresh conversation memory `>delete_history`
 - [X] research-oriented citations in responses via high-quality RAG from PaperQA2
-  - automatically processes uploaded PDFs into knowledge base
-  - enhances responses with citations from papers
+  - two-tier system: local papers db + dynamic paper search fallback
+  - auto-processes uploaded PDFs into knowledge base
+  - real-time paper discovery when local db lacks info
   - parallel chunk processing for faster PDF ingestion
   - rate-limited API calls to prevent throttling
-
-
-## todo
-- [x] **tentatively fixed** ~⚠️ fix multi-turn conversation history bug (sends incorrectly formed request which throws an error. caused either by trimming behavior when hitting max_memory or some arbitrary anthropic API behavior)~
-- [x] incorporating citations into claudecord's responses 
-- [x] implementing RAG with PaperQA
-- [ ] group chat command - merge conversation histories w/ 2 or more users in server
-- [ ] extract DOI and title from PDFs automatically
-- [ ] implement LRU cache for frequently accessed papers
-- [ ] add semantic similarity scoring for citation relevance
-- [ ] support for arXiv ID paper downloads
+  - tracks paper metadata (DOIs, citations) in manifest
+  - uses LiteLLM under the hood for efficient API management
