@@ -10,6 +10,7 @@ dependencies = [
     "discord-py>=2.4.0",
     "litecli>=1.13.2",
     "litellm>=1.53.1",
+    "motor>=3.7.0",
     "paper-qa>=5.5.0",
     "paper-scraper",
     "pdfminer-six>=20240706",
