@@ -20,12 +20,11 @@ a supercharged claude discord bot for your discord server!
                 discord
                    │
                    ▼
-user a ──►    ┌─────────┐    ┌─────────┐
-              │         │    │         │
-user b ──►    │ claude  ├───►│ claude  │
-              │ cord    │    │ api     │
-user n ──►    │         │    │         │
-              └────┬────┘    └─────────┘
+              ┌────────────┐    ┌────────────┐
+user a ──►    │            │    │            │
+user b ──►    │ claudecord ├───►│ claude api │
+user n ──►    │            │    │            │
+              └────┬───────┘    └────────────┘
                    │
                    ▼
               conversation
