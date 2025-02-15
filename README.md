@@ -12,9 +12,9 @@ a supercharged claude discord bot for your discord server!
 
 - [X] multi-turn conversations for each user in a discord server
 - [X] multimodality - claudecord can read and analyze pdfs and images 
-- [X] test-time scaling mode (s1 budget forcing implementation)
+- [X] **test-time scaling mode** (s1 budget forcing implementation)
 - [X] normal mode with supercharged metaprompt
-- [X] multi-user conversations (so you and all your friends can talk to claude!)
+- [X] **multi-user conversations** (so you and all your friends can talk to claude!)
 
 ```
                 discord
